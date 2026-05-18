@@ -1,129 +1,125 @@
 using System.Collections;
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(SpriteRenderer))]
 public class BirdController : MonoBehaviour
 {
-    [Header("Movement")]
-    [SerializeField] private float jumpForce = 5.5f;
-    [SerializeField] private float gravityScale = 2f;
-    [SerializeField] private float maxUpAngle = 25f;
-    [SerializeField] private float maxDownAngle = -90f;
-    [SerializeField] private float rotateSpeed = 8f;
+    [Header("Jump Settings")]
+    public float jumpForce = 5f;
 
-    [Header("Flap Sprites")]
-    [SerializeField] private Sprite flapUp;
-    [SerializeField] private Sprite flapMid;
-    [SerializeField] private Sprite flapDown;
+    [Header("Wing Animation")]
+    public Sprite wingUpSprite;
+    public Sprite wingMiddleSprite;
+    public Sprite wingDownSprite;
+    public float flapFrameTime = 0.08f;
 
     private Rigidbody2D rb;
-    private SpriteRenderer sr;
-    private bool isDead;
+    private SpriteRenderer spriteRenderer;
+
+    private bool isDead = false;
+    private bool canControl = false;
+
     private Coroutine flapCoroutine;
 
-    private void Awake()
+    void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        sr = GetComponent<SpriteRenderer>();
-    }
+        spriteRenderer = GetComponent<SpriteRenderer>();
 
-    private void Start()
-    {
-        rb.gravityScale = gravityScale;
-        rb.velocity = Vector2.zero;
+        rb.simulated = false;
 
-        if (flapMid != null)
-            sr.sprite = flapMid;
-    }
-
-    private void Update()
-    {
-        if (isDead) return;
-        if (GameManager.Instance != null && GameManager.Instance.IsGameOver()) return;
-
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        if (wingMiddleSprite != null)
         {
-            Fly();
-            PlayFlapAnimation();
+            spriteRenderer.sprite = wingMiddleSprite;
+        }
+    }
+
+    void Update()
+    {
+        if (!canControl || isDead) return;
+
+        if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.touchCount > 0)
+        {
+            Jump();
         }
 
-        RotateBird();
+        float angle = Mathf.Clamp(rb.velocity.y * 5f, -35f, 35f);
+        transform.rotation = Quaternion.Euler(0, 0, angle);
     }
 
-    private void Fly()
+    public void StartBird()
+    {
+        rb.simulated = true;
+        canControl = true;
+        isDead = false;
+
+        Jump();
+    }
+
+    void Jump()
     {
         rb.velocity = Vector2.zero;
         rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+        PlayFlapAnimation();
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlayWing();
+        }
     }
 
-    private void RotateBird()
-    {
-        float angle;
-
-        if (rb.velocity.y > 0)
-            angle = maxUpAngle;
-        else
-            angle = Mathf.Lerp(0f, maxDownAngle, -rb.velocity.y / 5f);
-
-        transform.rotation = Quaternion.Lerp(
-            transform.rotation,
-            Quaternion.Euler(0f, 0f, angle),
-            rotateSpeed * Time.deltaTime
-        );
-    }
-
-    private void PlayFlapAnimation()
+    void PlayFlapAnimation()
     {
         if (flapCoroutine != null)
+        {
             StopCoroutine(flapCoroutine);
+        }
 
         flapCoroutine = StartCoroutine(FlapRoutine());
     }
 
-    private IEnumerator FlapRoutine()
+    IEnumerator FlapRoutine()
     {
-        if (flapUp != null) sr.sprite = flapUp;
-        yield return new WaitForSeconds(0.05f);
+        if (wingUpSprite != null)
+        {
+            spriteRenderer.sprite = wingUpSprite;
+        }
 
-        if (flapMid != null) sr.sprite = flapMid;
-        yield return new WaitForSeconds(0.05f);
+        yield return new WaitForSeconds(flapFrameTime);
 
-        if (flapDown != null) sr.sprite = flapDown;
-        yield return new WaitForSeconds(0.05f);
+        if (wingMiddleSprite != null)
+        {
+            spriteRenderer.sprite = wingMiddleSprite;
+        }
 
-        if (flapMid != null) sr.sprite = flapMid;
+        yield return new WaitForSeconds(flapFrameTime);
+
+        if (wingDownSprite != null)
+        {
+            spriteRenderer.sprite = wingDownSprite;
+        }
+
+        yield return new WaitForSeconds(flapFrameTime);
+
+        if (wingMiddleSprite != null)
+        {
+            spriteRenderer.sprite = wingMiddleSprite;
+        }
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    void OnCollisionEnter2D(Collision2D collision)
     {
         if (isDead) return;
 
         if (collision.gameObject.CompareTag("Ground") || collision.gameObject.CompareTag("Pipe"))
         {
-            Die();
-        }
-    }
+            isDead = true;
+            canControl = false;
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (isDead) return;
-
-        if (other.CompareTag("ScoreZone"))
-        {
             if (GameManager.Instance != null)
-                GameManager.Instance.AddScore();
+            {
+                GameManager.Instance.GameOver();
+            }
         }
-    }
-
-    private void Die()
-    {
-        if (isDead) return;
-
-        isDead = true;
-        rb.simulated = false;
-
-        if (GameManager.Instance != null)
-            GameManager.Instance.GameOver();
     }
 }

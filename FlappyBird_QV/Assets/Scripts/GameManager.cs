@@ -1,68 +1,146 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private GameObject gameOverImage;
+    [Header("UI Panels")]
+    public GameObject startPanel;
+    public GameObject inGamePanel;
+    public GameObject gameOverPanel;
 
-    private int score;
-    private bool isGameOver;
+    private bool gameStarted = false;
+    private bool gameOver = false;
 
-    private void Awake()
+    void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-            Destroy(gameObject);
+        Instance = this;
     }
 
-    private void Start()
+    void Start()
     {
-        score = 0;
-        UpdateScoreUI();
+        Time.timeScale = 1f;
 
-        if (gameOverImage != null)
-            gameOverImage.SetActive(false);
-    }
+        gameStarted = false;
+        gameOver = false;
 
-    private void Update()
-    {
-        if (isGameOver && (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0)))
+        if (startPanel != null)
         {
-            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            startPanel.SetActive(true);
+        }
+
+        if (inGamePanel != null)
+        {
+            inGamePanel.SetActive(false);
+        }
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
         }
     }
 
-    public void AddScore()
+    public void StartGame()
     {
-        if (isGameOver) return;
+        gameStarted = true;
+        gameOver = false;
 
-        score++;
-        UpdateScoreUI();
-    }
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySwoosh();
+        }
 
-    private void UpdateScoreUI()
-    {
-        if (scoreText != null)
-            scoreText.text = "Score: " + score;
+        if (startPanel != null)
+        {
+            startPanel.SetActive(false);
+        }
+
+        if (inGamePanel != null)
+        {
+            inGamePanel.SetActive(true);
+        }
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
+
+        BirdController bird = FindObjectOfType<BirdController>();
+
+        if (bird != null)
+        {
+            bird.StartBird();
+        }
     }
 
     public void GameOver()
     {
-        if (isGameOver) return;
+        if (gameOver) return;
 
-        isGameOver = true;
+        gameOver = true;
+        gameStarted = false;
 
-        if (gameOverImage != null)
-            gameOverImage.SetActive(true);
+        Score score = FindObjectOfType<Score>();
+
+        if (score != null)
+        {
+            score.ShowFinalScoreOnly();
+        }
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlayHit();
+            SoundManager.Instance.PlayDie();
+        }
+
+        if (inGamePanel != null)
+        {
+            inGamePanel.SetActive(false);
+        }
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+
+        Time.timeScale = 0f;
+    }
+
+    public void Replay()
+    {
+        StartCoroutine(ReplayRoutine());
+    }
+
+    IEnumerator ReplayRoutine()
+    {
+        Score score = FindObjectOfType<Score>();
+
+        if (score != null)
+        {
+            score.SaveHighScoreWhenReplay();
+        }
+
+        if (SoundManager.Instance != null)
+        {
+            SoundManager.Instance.PlaySwoosh();
+        }
+
+        // Dùng WaitForSecondsRealtime vì lúc Game Over Time.timeScale = 0
+        yield return new WaitForSecondsRealtime(0.15f);
+
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public bool IsGameStarted()
+    {
+        return gameStarted;
     }
 
     public bool IsGameOver()
     {
-        return isGameOver;
+        return gameOver;
     }
 }

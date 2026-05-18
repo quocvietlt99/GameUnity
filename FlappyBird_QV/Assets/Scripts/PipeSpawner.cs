@@ -2,41 +2,52 @@ using UnityEngine;
 
 public class PipeSpawner : MonoBehaviour
 {
-    [SerializeField] private GameObject pipePairPrefab;
-    [SerializeField] private float spawnInterval = 2f;
-    [SerializeField] private float spawnX = 8f;
-    [SerializeField] private float minY = -1.5f;
-    [SerializeField] private float maxY = 1.5f;
+    [Header("Pipe Settings")]
+    public GameObject pipePrefab;
+    public float spawnRate = 1.6f;
+    public float firstSpawnDelay = 0.3f;
+    public float heightOffset = 1.5f;
+
+    [Header("Spawn Position")]
+    public float spawnOffsetX = 1.5f;
 
     private float timer;
 
-    private void Start()
+    void Start()
     {
-        timer = 0f;
-        SpawnPipe();
+        timer = firstSpawnDelay;
     }
 
-    private void Update()
+    void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.IsGameOver())
-            return;
+        if (GameManager.Instance == null) return;
+        if (!GameManager.Instance.IsGameStarted()) return;
+        if (GameManager.Instance.IsGameOver()) return;
 
-        if (pipePairPrefab == null)
-            return;
+        timer -= Time.deltaTime;
 
-        timer += Time.deltaTime;
-
-        if (timer >= spawnInterval)
+        if (timer <= 0)
         {
             SpawnPipe();
-            timer = 0f;
+            timer = spawnRate;
         }
     }
 
-    private void SpawnPipe()
+    void SpawnPipe()
     {
-        float randomY = Random.Range(minY, maxY);
-        Vector3 spawnPos = new Vector3(spawnX, randomY, 0f);
-        Instantiate(pipePairPrefab, spawnPos, Quaternion.identity);
+        if (pipePrefab == null)
+        {
+            Debug.LogError("Chưa gán Pipe Prefab vào PipeSpawner!");
+            return;
+        }
+
+        float randomY = Random.Range(-heightOffset, heightOffset);
+
+        float rightEdge = Camera.main.ViewportToWorldPoint(new Vector3(1, 0.5f, 0)).x;
+        float spawnX = rightEdge + spawnOffsetX;
+
+        Vector3 spawnPosition = new Vector3(spawnX, randomY, 0);
+
+        Instantiate(pipePrefab, spawnPosition, Quaternion.identity);
     }
 }
