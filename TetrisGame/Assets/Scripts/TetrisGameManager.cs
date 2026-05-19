@@ -8,30 +8,12 @@ public class TetrisGameManager : MonoBehaviour
     private static int sessionHighScore = 0;
 
     [Header("Score Settings")]
-    [SerializeField] private int lockedPieceScore = 10;
-    [SerializeField] private int softDropScorePerCell = 1;
-    [SerializeField] private int hardDropScorePerCell = 2;
-    [SerializeField] private int comboBonus = 50;
-
-    [Header("Line Clear Score")]
-    [SerializeField] private int singleLineScore = 100;
-    [SerializeField] private int doubleLineScore = 300;
-    [SerializeField] private int tripleLineScore = 500;
-    [SerializeField] private int tetrisLineScore = 800;
-
-    [Header("T-Spin Score")]
-    [SerializeField] private int tSpinNoLineScore = 400;
-    [SerializeField] private int tSpinSingleScore = 800;
-    [SerializeField] private int tSpinDoubleScore = 1200;
-    [SerializeField] private int tSpinTripleScore = 1600;
+    [SerializeField] private int scorePerLine = 100;
 
     [Header("Level Settings")]
     [SerializeField] private float baseFallInterval = 0.8f;
     [SerializeField] private float minimumFallInterval = 0.08f;
     [SerializeField] private int linesPerLevel = 10;
-
-    [Header("Debug")]
-    [SerializeField] private bool enableDebugScoreKey = true;
 
     [Header("UI")]
     [SerializeField] private TetrisUI ui;
@@ -40,7 +22,11 @@ public class TetrisGameManager : MonoBehaviour
     public int HighScore { get; private set; }
     public int Level { get; private set; } = 1;
     public int Lines { get; private set; }
-    public int Combo { get; private set; } = -1;
+
+    // Combo ở đây chính là số hàng xóa cùng lúc.
+    // Ví dụ xóa 3 hàng cùng lúc => Combo = 3.
+    public int Combo { get; private set; }
+
     public bool IsGameOver { get; private set; }
 
     private void Awake()
@@ -51,7 +37,7 @@ public class TetrisGameManager : MonoBehaviour
         HighScore = sessionHighScore;
         Level = 1;
         Lines = 0;
-        Combo = -1;
+        Combo = 0;
         IsGameOver = false;
     }
 
@@ -60,43 +46,22 @@ public class TetrisGameManager : MonoBehaviour
         RefreshUI();
     }
 
-    private void Update()
-    {
-        if (!enableDebugScoreKey)
-        {
-            return;
-        }
-
-        if (Input.GetKeyDown(KeyCode.P))
-        {
-            AddScore(100);
-        }
-    }
-
     public float GetFallInterval()
     {
         float interval = baseFallInterval * Mathf.Pow(0.85f, Level - 1);
         return Mathf.Max(minimumFallInterval, interval);
     }
 
+    // Không cộng điểm khi soft drop.
     public void AddSoftDropScore()
     {
-        if (IsGameOver)
-        {
-            return;
-        }
-
-        AddScore(softDropScorePerCell);
+        // Để trống theo yêu cầu: chỉ xóa hàng mới tính điểm.
     }
 
+    // Không cộng điểm khi hard drop.
     public void AddHardDropScore(int cells)
     {
-        if (IsGameOver)
-        {
-            return;
-        }
-
-        AddScore(cells * hardDropScorePerCell);
+        // Để trống theo yêu cầu: chỉ xóa hàng mới tính điểm.
     }
 
     public void OnPieceLocked(int clearedLines, bool isTSpin)
@@ -106,60 +71,25 @@ public class TetrisGameManager : MonoBehaviour
             return;
         }
 
-        AddScore(lockedPieceScore);
-
-        if (clearedLines > 0)
+        if (clearedLines <= 0)
         {
-            Lines += clearedLines;
-            Level = Mathf.Max(1, Lines / linesPerLevel + 1);
-            Combo++;
-        }
-        else
-        {
-            Combo = -1;
-        }
-
-        int gainedScore = CalculateLineScore(clearedLines, isTSpin);
-
-        if (gainedScore > 0)
-        {
-            AddScore(gainedScore * Level);
-        }
-
-        if (clearedLines > 0 && Combo > 0)
-        {
-            AddScore(Combo * comboBonus * Level);
-        }
-
-        RefreshUI();
-    }
-
-    private int CalculateLineScore(int clearedLines, bool isTSpin)
-    {
-        if (isTSpin)
-        {
-            if (clearedLines == 0) return tSpinNoLineScore;
-            if (clearedLines == 1) return tSpinSingleScore;
-            if (clearedLines == 2) return tSpinDoubleScore;
-            return tSpinTripleScore;
-        }
-
-        if (clearedLines == 1) return singleLineScore;
-        if (clearedLines == 2) return doubleLineScore;
-        if (clearedLines == 3) return tripleLineScore;
-        if (clearedLines >= 4) return tetrisLineScore;
-
-        return 0;
-    }
-
-    public void AddScore(int amount)
-    {
-        if (IsGameOver)
-        {
+            Combo = 0;
+            RefreshUI();
             return;
         }
 
-        Score += Mathf.Max(0, amount);
+        Lines += clearedLines;
+
+        Level = Mathf.Max(1, Lines / linesPerLevel + 1);
+
+        // Combo = số hàng xóa cùng lúc.
+        // Ví dụ clearedLines = 3 thì UI sẽ hiện Combo 3.
+        Combo = clearedLines;
+
+        int gainedScore = clearedLines * scorePerLine * Level;
+
+        Score += gainedScore;
+
         RefreshUI();
     }
 

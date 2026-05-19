@@ -31,7 +31,7 @@ public class TetrisUI : MonoBehaviour
 
     private void Start()
     {
-        RefreshStats(0, 0, 1, 0, -1, false);
+        RefreshStats(0, 0, 1, 0, 0, false);
     }
 
     public void RefreshStats(
