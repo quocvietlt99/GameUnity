@@ -19,21 +19,25 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
     public float speed = 5f;
 
     [Header("Obstacle Prefabs")]
+    [Tooltip("Kéo Obstacle1, Obstacle2 và BirdObstacle prefab vào đây.")]
     public GameObject[] obstacles;
 
     [Header("Obstacle Spawn")]
     public bool useCameraRightEdge = true;
     public float spawnOffsetFromCameraRight = 1.2f;
     public float spawnXPosition = 6.5f;
+
+    [Tooltip("Độ cao mặc định cho xương rồng.")]
     public float cactusYPosition = -0.147f;
+
     public float obstacleZPosition = -1f;
 
     [Header("Distance Between Obstacles")]
-    [Tooltip("Khoảng cách tối thiểu giữa 2 cây xương rồng. Số càng lớn thì cây càng cách xa nhau.")]
-    public float minDistanceBetweenObstacles = 3.0f;
+    [Tooltip("Khoảng cách tối thiểu giữa 2 chướng ngại vật.")]
+    public float minDistanceBetweenObstacles = 3.5f;
 
-    [Tooltip("Khoảng cách tối đa giữa 2 cây xương rồng. Số càng lớn thì cây sinh thưa hơn.")]
-    public float maxDistanceBetweenObstacles = 5.5f;
+    [Tooltip("Khoảng cách tối đa giữa 2 chướng ngại vật.")]
+    public float maxDistanceBetweenObstacles = 6f;
 
     [Header("Obstacle Render")]
     public string obstacleSortingLayerName = "Default";
@@ -43,7 +47,6 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
     public float firstSpawnDelay = 0.5f;
 
     private float spawnTimer;
-    private float nextSpawnDelay;
 
     void Start()
     {
@@ -206,8 +209,8 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
             }
 
             float randomDistance = Random.Range(minDistanceBetweenObstacles, maxDistanceBetweenObstacles);
+            float nextSpawnDelay = randomDistance / finalSpeed;
 
-            nextSpawnDelay = randomDistance / finalSpeed;
             SetNextSpawnDelay(nextSpawnDelay);
         }
     }
@@ -227,7 +230,7 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
 
         if (obstacles == null || obstacles.Length == 0)
         {
-            Debug.LogWarning("PlatformAndObstaclesManager_Finished: Chua keo prefab xuong rong vao Obstacles.");
+            Debug.LogWarning("PlatformAndObstaclesManager_Finished: Chưa kéo prefab obstacle vào mảng Obstacles.");
             return;
         }
 
@@ -235,14 +238,18 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
 
         if (obstacles[randomIndex] == null)
         {
-            Debug.LogWarning("PlatformAndObstaclesManager_Finished: Mot phan tu trong Obstacles dang bi None.");
+            Debug.LogWarning("PlatformAndObstaclesManager_Finished: Có phần tử trong Obstacles đang bị None.");
             return;
         }
 
-        float spawnX = GetSpawnXPosition();
-        Vector3 spawnPosition = new Vector3(spawnX, cactusYPosition, obstacleZPosition);
+        GameObject selectedPrefab = obstacles[randomIndex];
 
-        GameObject newObstacle = Instantiate(obstacles[randomIndex], spawnPosition, Quaternion.identity);
+        float spawnX = GetSpawnXPosition();
+        float spawnY = GetSpawnYPosition(selectedPrefab);
+
+        Vector3 spawnPosition = new Vector3(spawnX, spawnY, obstacleZPosition);
+
+        GameObject newObstacle = Instantiate(selectedPrefab, spawnPosition, Quaternion.identity);
 
         PrepareObstacle(newObstacle);
 
@@ -258,6 +265,23 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
 
         Vector3 rightEdgeWorldPosition = Camera.main.ViewportToWorldPoint(new Vector3(1f, 0.5f, 0f));
         return rightEdgeWorldPosition.x + spawnOffsetFromCameraRight;
+    }
+
+    private float GetSpawnYPosition(GameObject prefab)
+    {
+        if (prefab == null)
+        {
+            return cactusYPosition;
+        }
+
+        BirdObstacle_Finished birdObstacle = prefab.GetComponent<BirdObstacle_Finished>();
+
+        if (birdObstacle != null)
+        {
+            return birdObstacle.GetRandomYPosition();
+        }
+
+        return cactusYPosition;
     }
 
     private void PrepareObstacle(GameObject obstacle)
@@ -278,6 +302,19 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
 
         moveObject.speed = speed;
 
+        ObstacleBlock_Finished obstacleBlock = obstacle.GetComponent<ObstacleBlock_Finished>();
+
+        if (obstacleBlock == null)
+        {
+            obstacle.AddComponent<ObstacleBlock_Finished>();
+        }
+
+        ForceRenderInFront(obstacle);
+        ForceColliderTriggerIfBird(obstacle);
+    }
+
+    private void ForceRenderInFront(GameObject obstacle)
+    {
         SpriteRenderer[] renderers = obstacle.GetComponentsInChildren<SpriteRenderer>();
 
         for (int i = 0; i < renderers.Length; i++)
@@ -285,5 +322,24 @@ public class PlatformAndObstaclesManager_Finished : MonoBehaviour
             renderers[i].sortingLayerName = obstacleSortingLayerName;
             renderers[i].sortingOrder = obstacleSortingOrder;
         }
+    }
+
+    private void ForceColliderTriggerIfBird(GameObject obstacle)
+    {
+        BirdObstacle_Finished birdObstacle = obstacle.GetComponent<BirdObstacle_Finished>();
+
+        if (birdObstacle == null)
+        {
+            return;
+        }
+
+        BoxCollider2D boxCollider = obstacle.GetComponent<BoxCollider2D>();
+
+        if (boxCollider == null)
+        {
+            boxCollider = obstacle.AddComponent<BoxCollider2D>();
+        }
+
+        boxCollider.isTrigger = true;
     }
 }

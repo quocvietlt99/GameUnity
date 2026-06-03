@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f4fef40d396be32449e3821f0d3e02cd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 0.5
+  speed: 1
   destroyWhenOutOfScreen: 1
   destroyOffsetFromCameraLeft: 2
 --- !u!1 &1990120952342907136
@@ -238,3 +238,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61f1e9065dada884c98077efbeac88c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerTag: Player

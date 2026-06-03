@@ -4,75 +4,43 @@ using UnityEngine;
 
 public class BirdObstacle_Finished : MonoBehaviour
 {
-    [Header("Movement")]
-    public float speed = 5f;
+    [Header("Bird Height")]
+    [Tooltip("Các độ cao chim có thể bay. Spawner sẽ chọn ngẫu nhiên 1 giá trị.")]
+    public float[] randomYPositions = new float[]
+    {
+        0.2f,
+        0.8f,
+        1.3f
+    };
 
-    [Header("Destroy")]
-    public bool destroyWhenOutOfScreen = true;
-    public float destroyOffsetFromCameraLeft = 2f;
+    [Header("Collider")]
+    public bool forceTriggerCollider = true;
+    public Vector2 colliderSize = new Vector2(0.7f, 0.45f);
+    public Vector2 colliderOffset = Vector2.zero;
 
-    [Header("Render")]
-    public string sortingLayerName = "Default";
-    public int sortingOrder = 50;
+    [Header("Animation")]
+    public bool randomAnimationSpeed = true;
+    public float minAnimationSpeed = 0.85f;
+    public float maxAnimationSpeed = 1.25f;
 
-    private void Start()
+    private Animator animator;
+
+    private void Awake()
     {
         gameObject.tag = "Obstacle";
 
-        ForceRenderInFront();
-        EnsureColliderAndObstacleBlock();
+        animator = GetComponent<Animator>();
+
+        if (animator != null && randomAnimationSpeed)
+        {
+            animator.speed = Random.Range(minAnimationSpeed, maxAnimationSpeed);
+        }
+
+        FixCollider();
+        EnsureObstacleBlock();
     }
 
-    private void Update()
-    {
-        if (GameManagerScript_Finished.instance == null)
-        {
-            return;
-        }
-
-        if (!GameManagerScript_Finished.instance.gameRunning)
-        {
-            return;
-        }
-
-        float finalSpeed = speed;
-
-        if (GameManagerScript_Finished.instance != null)
-        {
-            finalSpeed = speed * GameManagerScript_Finished.instance.GetSpeedMultiplier();
-        }
-
-        transform.Translate(Vector3.left * Time.deltaTime * finalSpeed);
-
-        if (destroyWhenOutOfScreen && IsOutOfCameraLeft())
-        {
-            Destroy(gameObject);
-        }
-    }
-
-    private bool IsOutOfCameraLeft()
-    {
-        if (Camera.main == null)
-        {
-            return transform.position.x <= -12f;
-        }
-
-        Vector3 leftEdgeWorldPosition = Camera.main.ViewportToWorldPoint(new Vector3(0f, 0.5f, 0f));
-        return transform.position.x <= leftEdgeWorldPosition.x - destroyOffsetFromCameraLeft;
-    }
-
-    private void ForceRenderInFront()
-    {
-        SpriteRenderer[] renderers = GetComponentsInChildren<SpriteRenderer>();
-
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            renderers[i].sortingLayerName = sortingLayerName;
-            renderers[i].sortingOrder = sortingOrder;
-        }
-    }
-
-    private void EnsureColliderAndObstacleBlock()
+    private void FixCollider()
     {
         BoxCollider2D boxCollider = GetComponent<BoxCollider2D>();
 
@@ -81,8 +49,17 @@ public class BirdObstacle_Finished : MonoBehaviour
             boxCollider = gameObject.AddComponent<BoxCollider2D>();
         }
 
-        boxCollider.isTrigger = true;
+        if (forceTriggerCollider)
+        {
+            boxCollider.isTrigger = true;
+        }
 
+        boxCollider.size = colliderSize;
+        boxCollider.offset = colliderOffset;
+    }
+
+    private void EnsureObstacleBlock()
+    {
         ObstacleBlock_Finished obstacleBlock = GetComponent<ObstacleBlock_Finished>();
 
         if (obstacleBlock == null)
@@ -91,8 +68,14 @@ public class BirdObstacle_Finished : MonoBehaviour
         }
     }
 
-    public void SetSpeed(float newSpeed)
+    public float GetRandomYPosition()
     {
-        speed = newSpeed;
+        if (randomYPositions == null || randomYPositions.Length == 0)
+        {
+            return transform.position.y;
+        }
+
+        int randomIndex = Random.Range(0, randomYPositions.Length);
+        return randomYPositions[randomIndex];
     }
 }
