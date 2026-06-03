@@ -5,7 +5,6 @@ TagManager:
   serializedVersion: 2
   tags:
   - Obstacle
-  - Ground
   layers:
   - Default
   - TransparentFX
@@ -13,9 +12,9 @@ TagManager:
   - 
   - Water
   - UI
-  - Ground
-  - Player
-  - Obstacle
+  - 
+  - 
+  - 
   - 
   - 
   - 
