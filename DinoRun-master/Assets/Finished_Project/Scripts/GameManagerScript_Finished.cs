@@ -79,7 +79,7 @@ public class GameManagerScript_Finished : MonoBehaviour
 
     private void HandleStartInput()
     {
-        if (Input.anyKeyDown || Input.GetMouseButtonDown(0))
+        if (PressedJumpInput())
         {
             StartGame();
         }
@@ -87,11 +87,35 @@ public class GameManagerScript_Finished : MonoBehaviour
 
     private void HandleRestartInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space) ||
-            Input.GetMouseButtonDown(0))
+        if (PressedJumpInput())
         {
             RestartGame();
         }
+    }
+
+    private bool PressedJumpInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            return true;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            return true;
+        }
+
+        if (Input.touchCount > 0)
+        {
+            Touch touch = Input.GetTouch(0);
+
+            if (touch.phase == TouchPhase.Began)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void StartGame()
